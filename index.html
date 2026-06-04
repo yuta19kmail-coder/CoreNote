@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CoreNote - 共有メモ・階層図（開発中サンプル）</title>
+<style>
+  :root{
+    --acc:#ec4899; --acc2:#f472b6; --accd:#db2777;
+    --bg:#0e1116; --bg2:#161b22; --bg3:#1d242e; --bg4:#252e3a;
+    --text:#e6edf3; --text2:#9aa7b4; --text3:#6b7886;
+    --border:rgba(255,255,255,.10); --r:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic Medium","Meiryo",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+  button{font-family:inherit;cursor:pointer}
+
+  .dev-badge{display:inline-flex;align-items:center;gap:5px;margin-left:10px;padding:3px 9px;border-radius:999px;
+    font-size:11px;font-weight:700;white-space:nowrap;color:#fff;border:1px solid rgba(255,255,255,.25);
+    background:repeating-linear-gradient(45deg,#db2777,#db2777 8px,#be185d 8px,#be185d 16px)}
+
+  #cn-login{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 600px at 50% -10%,#46102c 0%,#170a10 55%,#0e090c 100%)}
+  #cn-login .lc{width:min(92vw,380px);background:rgba(30,16,23,.9);border:1px solid rgba(236,72,153,.35);
+    border-radius:16px;padding:30px 26px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  #cn-login .lg{font-size:30px;font-weight:800}
+  #cn-login .lg b{color:var(--acc2)}
+  #cn-login .sub{margin-top:6px;font-size:13px;color:#c397ab}
+  #cn-login .badge{margin:16px auto 0}
+  #cn-login .btn{margin-top:20px;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accd);color:#fff;font-size:15px;font-weight:700}
+  #cn-login .btn:hover{background:var(--acc)}
+  #cn-login .btn.ghost{background:transparent;border:1px solid rgba(195,151,171,.35);color:#a87f92;cursor:not-allowed;margin-top:10px}
+  #cn-login .note{margin-top:16px;font-size:11.5px;line-height:1.6;color:#8f6e7e}
+  #cn-login .ver{margin-top:14px;font-size:11px;color:#755966}
+
+  #app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:54px 1fr;height:100vh}
+  #topbar{grid-column:1/3;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--bg2);border-bottom:1px solid var(--border)}
+  .logo{font-size:18px;font-weight:800}
+  .logo b{color:var(--acc2)}
+  .logo .ver{font-size:11px;color:var(--text3);font-weight:600;margin-left:4px}
+  .spacer{flex:1}
+  .tb-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px}
+  .tb-btn.primary{background:var(--accd);border-color:var(--accd);color:#fff;font-weight:600}
+
+  #side{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0}
+  .sg{font-size:10px;color:var(--text3);letter-spacing:.08em;padding:12px 16px 4px;text-transform:uppercase}
+  .si{display:flex;align-items:center;gap:8px;padding:9px 16px;cursor:pointer;font-size:13px;color:var(--text2)}
+  .si:hover{background:var(--bg3);color:var(--text)}
+  .si.on{background:var(--bg3);color:var(--text);box-shadow:inset 3px 0 0 var(--acc)}
+
+  #main{overflow:auto;padding:16px 18px}
+  .nhead{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .ntitle{font-size:18px;font-weight:800}
+  .nscope{font-size:11px;font-weight:700;color:var(--acc2);background:rgba(236,72,153,.12);border:1px solid rgba(236,72,153,.4);padding:3px 10px;border-radius:999px}
+  .nlive{font-size:11px;color:var(--text2)}
+  .nlive b{color:var(--acc2)}
+
+  .memo{width:100%;min-height:300px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+    color:var(--text);font-family:inherit;font-size:13.5px;line-height:1.9;padding:16px;resize:vertical}
+  .memo:focus{outline:none;border-color:var(--acc)}
+
+  .tree{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+  .tnode{margin:2px 0}
+  .trow{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:7px;cursor:pointer}
+  .trow:hover{background:var(--bg3)}
+  .trow.sel{background:rgba(236,72,153,.15);box-shadow:inset 0 0 0 1px var(--acc)}
+  .tg{width:16px;text-align:center;color:var(--text3);font-size:10px;flex:0 0 auto}
+  .tl{font-size:13.5px}
+  .tkids{margin-left:22px;border-left:1px solid var(--border);padding-left:10px}
+  .tbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .tbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 11px;font-size:12.5px}
+  .tbtn:hover{border-color:var(--acc)}
+  .note{font-size:11px;color:var(--text3);line-height:1.7;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div id="cn-login">
+  <div class="lc">
+    <div class="lg">📝 Core<b>Note</b></div>
+    <div class="sub">共有メモ・階層図（Miro代替・小林モータース）</div>
+    <div class="badge dev-badge">🚧 開発中サンプル</div>
+    <button class="btn" onclick="cnLogin()">サンプルとして入る（開発用）</button>
+    <button class="btn ghost" disabled>Google でログイン（後日対応）</button>
+    <div class="note">構想モックです。本実装では「デザイナーが編集 → MTGで全員が同時閲覧（ほぼリアルタイム反映）」を想定。無限キャンバスの同時編集はやらない割り切りです。</div>
+    <div class="ver">CoreNote v0.1.0 (mock)</div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="topbar">
+    <div class="logo">📝 Core<b>Note</b><span class="ver">v0.1.0</span></div>
+    <span class="dev-badge">🚧 開発中サンプル</span>
+    <div class="spacer"></div>
+    <button class="tb-btn primary" onclick="alert('ノートの新規作成は本実装で。\nメモ／階層図を選び、共有範囲（個人・部署・プロジェクト）を設定して作る形になります。')">＋ ノート作成</button>
+  </div>
+
+  <div id="side"><div id="side-body"></div></div>
+
+  <div id="main">
+    <div class="nhead">
+      <div class="ntitle" id="n-title"></div>
+      <span class="nscope" id="n-scope"></span>
+      <span class="nlive" id="n-live"></span>
+    </div>
+    <div id="n-body"></div>
+  </div>
+</div>
+
+<script>
+/* ===== サンプルログイン ===== */
+function cnLogin(){ try{localStorage.setItem('cn_authed','1')}catch(e){} document.getElementById('cn-login').style.display='none'; }
+(function(){ let a=false; try{a=localStorage.getItem('cn_authed')==='1'}catch(e){} if(a)document.getElementById('cn-login').style.display='none'; })();
+
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ===== サンプルデータ ===== */
+let nid=0;
+function tn(label, kids){ nid++; return { id:'n'+nid, label:label, open:true, kids:kids||[] }; }
+
+const NOTES=[
+  { id:'d1', type:'tree', scope:'プロジェクト', name:'Webコラム 階層構成', editor:'デザイナー', viewers:3,
+    tree: tn('小林モータース コラム', [
+      tn('🚗 車検コラム', [ tn('車検費用の内訳'), tn('車検の期間と流れ'), tn('必要書類まとめ'), tn('代車の借り方') ]),
+      tn('🔧 修理・整備コラム', [ tn('エンジン異音の原因'), tn('オイル交換の頻度'), tn('タイヤ交換の目安') ]),
+      tn('🚙 中古車コラム', [ tn('失敗しない中古車選び'), tn('下取りと買取の違い') ]),
+      tn('🎬 YouTube連動', [ tn('動画→記事の流用ルール') ])
+    ])},
+  { id:'d2', type:'memo', scope:'部署', name:'受付 引き継ぎメモ', editor:'受付', viewers:5,
+    body:'■ 6/4（木）\n・カワシマ様 R56 → 部品入荷待ち、入荷したらTEL\n・代車12 リースアップの件、営業さん来店は金曜15時\n\n■ 共有\n・夏季の代車予約が混んでます。新規はPitFlowの「代車の最短空き」を確認してから返答！\n・コーヒーメーカーの豆、発注済み' },
+  { id:'d3', type:'memo', scope:'プロジェクト', name:'HPリニューアル 議事録 6/2', editor:'ゆうた', viewers:3,
+    body:'■ 決定事項\n・トップのメインビジュアルは工場の作業風景に\n・コラムはCoreNoteの階層図の構成で進める\n・公開目標：8月頭\n\n■ 宿題\n・デザイナー：ワイヤー 6/10まで\n・ゆうた：サーバー移転見積もり 6/5まで' },
+  { id:'d4', type:'memo', scope:'個人', name:'ゆうた アイデア帳', editor:'ゆうた', viewers:1,
+    body:'・混雑アルゴリズム：予約上限の数字を現場とすり合わせる\n・YouTubeネタ：代車20台の管理の裏側（PitFlow画面出す？）\n・CoreBoard定着したらTrello解約 → 浮いた分でAPI費用に回す' }
+];
+let cur='d1', sel=null;
+
+function renderSide(){
+  const groups={};
+  NOTES.forEach(function(n){ (groups[n.scope]=groups[n.scope]||[]).push(n); });
+  let h='';
+  ['プロジェクト','部署','個人'].forEach(function(g){
+    if(!groups[g]) return;
+    h+='<div class="sg">'+(g==='プロジェクト'?'📁':'')+(g==='部署'?'🏢':'')+(g==='個人'?'👤':'')+' '+g+'</div>';
+    groups[g].forEach(function(n){
+      h+='<div class="si'+(n.id===cur?' on':'')+'" onclick="cnOpen(\''+n.id+'\')">'+(n.type==='tree'?'🌳':'📄')+' '+esc(n.name)+'</div>';
+    });
+  });
+  document.getElementById('side-body').innerHTML=h;
+}
+
+function renderNote(){
+  const n=NOTES.find(function(x){return x.id===cur;});
+  if(!n) return;
+  document.getElementById('n-title').textContent=(n.type==='tree'?'🌳 ':'📄 ')+n.name;
+  document.getElementById('n-scope').textContent=n.scope;
+  document.getElementById('n-live').innerHTML='✏️ 編集中：<b>'+esc(n.editor)+'</b>　👀 閲覧中：'+n.viewers+'人（MTG同時閲覧イメージ）';
+  const b=document.getElementById('n-body');
+  if(n.type==='memo'){
+    b.innerHTML='<textarea class="memo" id="memo-ta">'+esc(n.body)+'</textarea>'
+      +'<div class="note">💡 本実装：編集はひとりずつ（編集中表示）・閲覧側にはほぼリアルタイムで反映（Firestore onSnapshot）。版の履歴は軽く持つ。</div>';
+    const ta=document.getElementById('memo-ta');
+    ta.addEventListener('input', function(){ n.body=ta.value; });
+  } else {
+    let h='<div class="tbar">'
+      +'<button class="tbtn" onclick="cnAddChild()">＋ 子を追加</button>'
+      +'<button class="tbtn" onclick="cnRename()">✏️ 名前変更</button>'
+      +'<button class="tbtn" onclick="cnDelete()">🗑 削除</button>'
+      +'<span class="note" style="margin:0;align-self:center">ノードをクリックして選択 → 追加・変更・削除（サンプル）</span>'
+      +'</div>';
+    h+='<div class="tree">'+treeHtml(n.tree)+'</div>';
+    h+='<div class="note">💡 これが「Webコラムの階層表現」のCoreNote版。本実装：デザイナーが編集→MTGで全員同時閲覧、ノードの並び替え・折りたたみ・メモ添付。</div>';
+    b.innerHTML=h;
+  }
+}
+
+function treeHtml(node){
+  let h='<div class="tnode">';
+  h+='<div class="trow'+(sel===node.id?' sel':'')+'" onclick="cnSel(\''+node.id+'\')">';
+  h+='<span class="tg" onclick="event.stopPropagation();cnToggle(\''+node.id+'\')">'+(node.kids.length?(node.open?'▼':'▶'):'・')+'</span>';
+  h+='<span class="tl">'+esc(node.label)+'</span>';
+  h+='</div>';
+  if(node.kids.length && node.open){
+    h+='<div class="tkids">';
+    node.kids.forEach(function(k){ h+=treeHtml(k); });
+    h+='</div>';
+  }
+  h+='</div>';
+  return h;
+}
+
+function findNode(node, id, parent){
+  if(node.id===id) return {node:node, parent:parent};
+  for(let i=0;i<node.kids.length;i++){
+    const r=findNode(node.kids[i], id, node);
+    if(r) return r;
+  }
+  return null;
+}
+function curTree(){ const n=NOTES.find(function(x){return x.id===cur;}); return (n&&n.type==='tree')?n.tree:null; }
+
+function cnOpen(id){ cur=id; sel=null; renderSide(); renderNote(); }
+function cnSel(id){ sel=(sel===id?null:id); renderNote(); }
+function cnToggle(id){ const t=curTree(); if(!t)return; const r=findNode(t,id,null); if(r){ r.node.open=!r.node.open; renderNote(); } }
+function cnAddChild(){
+  const t=curTree(); if(!t)return;
+  const target=sel?findNode(t,sel,null):{node:t};
+  if(!target){ alert('追加先のノードをクリックで選んでください'); return; }
+  const label=prompt('追加する項目名：'); if(!label) return;
+  target.node.kids.push(tn(label));
+  target.node.open=true;
+  renderNote();
+}
+function cnRename(){
+  const t=curTree(); if(!t||!sel){ alert('ノードをクリックで選んでください'); return; }
+  const r=findNode(t,sel,null); if(!r) return;
+  const label=prompt('新しい名前：', r.node.label); if(!label) return;
+  r.node.label=label; renderNote();
+}
+function cnDelete(){
+  const t=curTree(); if(!t||!sel){ alert('ノードをクリックで選んでください'); return; }
+  const r=findNode(t,sel,null);
+  if(!r||!r.parent){ alert('一番上のノードは消せません'); return; }
+  if(!confirm('「'+r.node.label+'」を子ごと削除しますか？')) return;
+  r.parent.kids.splice(r.parent.kids.indexOf(r.node),1);
+  sel=null; renderNote();
+}
+
+renderSide(); renderNote();
+</script>
+</body>
+</html>
