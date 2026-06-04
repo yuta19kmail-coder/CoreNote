@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CoreNote - 共有メモ・階層図（開発中サンプル）</title>
+<title>CoreNote - 自由キャンバス（開発中サンプル）</title>
 <style>
   :root{
     --acc:#ec4899; --acc2:#f472b6; --accd:#db2777;
@@ -12,7 +12,7 @@
     --border:rgba(255,255,255,.10); --r:12px;
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic Medium","Meiryo",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic Medium","Meiryo",sans-serif;background:var(--bg);color:var(--text);font-size:14px;overflow:hidden}
   button{font-family:inherit;cursor:pointer}
 
   .dev-badge{display:inline-flex;align-items:center;gap:5px;margin-left:10px;padding:3px 9px;border-radius:999px;
@@ -48,29 +48,53 @@
   .si:hover{background:var(--bg3);color:var(--text)}
   .si.on{background:var(--bg3);color:var(--text);box-shadow:inset 3px 0 0 var(--acc)}
 
-  #main{overflow:auto;padding:16px 18px}
-  .nhead{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-  .ntitle{font-size:18px;font-weight:800}
+  #main{display:flex;flex-direction:column;overflow:hidden}
+  .nhead{display:flex;align-items:center;gap:10px;padding:12px 18px 8px;flex-wrap:wrap}
+  .ntitle{font-size:17px;font-weight:800}
   .nscope{font-size:11px;font-weight:700;color:var(--acc2);background:rgba(236,72,153,.12);border:1px solid rgba(236,72,153,.4);padding:3px 10px;border-radius:999px}
   .nlive{font-size:11px;color:var(--text2)}
   .nlive b{color:var(--acc2)}
+  #n-body{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 18px 14px}
 
-  .memo{width:100%;min-height:300px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
-    color:var(--text);font-family:inherit;font-size:13.5px;line-height:1.9;padding:16px;resize:vertical}
+  .memo{width:100%;flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+    color:var(--text);font-family:inherit;font-size:13.5px;line-height:1.9;padding:16px;resize:none}
   .memo:focus{outline:none;border-color:var(--acc)}
 
-  .tree{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px}
-  .tnode{margin:2px 0}
-  .trow{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:7px;cursor:pointer}
-  .trow:hover{background:var(--bg3)}
-  .trow.sel{background:rgba(236,72,153,.15);box-shadow:inset 0 0 0 1px var(--acc)}
-  .tg{width:16px;text-align:center;color:var(--text3);font-size:10px;flex:0 0 auto}
-  .tl{font-size:13.5px}
-  .tkids{margin-left:22px;border-left:1px solid var(--border);padding-left:10px}
-  .tbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-  .tbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 11px;font-size:12.5px}
-  .tbtn:hover{border-color:var(--acc)}
-  .note{font-size:11px;color:var(--text3);line-height:1.7;margin-top:10px}
+  /* ===== キャンバス（Miro風） ===== */
+  .cv-actions{display:flex;align-items:center;gap:8px;padding:6px 0;min-height:40px;flex-wrap:wrap}
+  .cv-actions .abtn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 11px;font-size:12.5px}
+  .cv-actions .abtn:hover{border-color:var(--acc)}
+  .cv-actions .sw{width:22px;height:22px;border-radius:6px;border:2px solid transparent;cursor:pointer}
+  .cv-actions .sw.on{border-color:#fff}
+  .cv-hint{font-size:11px;color:var(--text3)}
+  .cv-wrap{position:relative;flex:1;overflow:hidden;border:1px solid var(--border);border-radius:var(--r);background:var(--bg);cursor:default}
+  .cv-canvas{position:absolute;left:0;top:0;width:3000px;height:2000px;transform-origin:0 0;
+    background-image:radial-gradient(rgba(150,160,175,.18) 1.2px, transparent 1.2px);background-size:24px 24px}
+  #cv-svg{position:absolute;left:0;top:0;pointer-events:none}
+
+  .el{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;
+    font-size:13px;line-height:1.45;color:#1f2430;user-select:none;cursor:grab;padding:8px;word-break:break-word}
+  .el .el-t{width:100%;outline:none;cursor:inherit}
+  .el.el-sticky{box-shadow:0 4px 10px rgba(0,0,0,.35);border-radius:4px;font-weight:600}
+  .el.el-rect{border-radius:10px;box-shadow:0 3px 8px rgba(0,0,0,.3);font-weight:700}
+  .el.el-ellipse{border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,.3);font-weight:700}
+  .el.el-text{background:transparent !important;color:var(--text);font-weight:600;box-shadow:none;justify-content:flex-start;text-align:left}
+  .el.sel{outline:2px solid var(--acc);outline-offset:2px}
+  .el.pend{outline:2px dashed var(--acc2);outline-offset:2px}
+  .el.editing{cursor:text}
+  .rsz{position:absolute;right:-6px;bottom:-6px;width:12px;height:12px;background:var(--acc);border:2px solid #fff;border-radius:3px;cursor:nwse-resize;display:none}
+  .el.sel .rsz{display:block}
+
+  .cv-tools{position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:10;display:flex;flex-direction:column;gap:6px;
+    background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+  .tool{width:38px;height:38px;border-radius:9px;border:1px solid transparent;background:none;font-size:17px;color:var(--text2);display:flex;align-items:center;justify-content:center}
+  .tool:hover{background:var(--bg3)}
+  .tool.on{background:rgba(236,72,153,.18);border-color:var(--acc);color:var(--text)}
+  .cv-zoom{position:absolute;right:12px;bottom:12px;z-index:10;display:flex;align-items:center;gap:4px;
+    background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px 6px}
+  .cv-zoom button{background:none;border:0;color:var(--text);font-size:15px;width:26px;height:26px;border-radius:6px}
+  .cv-zoom button:hover{background:var(--bg3)}
+  .cv-zoom span{font-size:11.5px;color:var(--text2);min-width:42px;text-align:center}
 </style>
 </head>
 <body>
@@ -78,21 +102,21 @@
 <div id="cn-login">
   <div class="lc">
     <div class="lg">📝 Core<b>Note</b></div>
-    <div class="sub">共有メモ・階層図（Miro代替・小林モータース）</div>
+    <div class="sub">自由キャンバス・共有メモ（Miro代替・小林モータース）</div>
     <div class="badge dev-badge">🚧 開発中サンプル</div>
     <button class="btn" onclick="cnLogin()">サンプルとして入る（開発用）</button>
     <button class="btn ghost" disabled>Google でログイン（後日対応）</button>
-    <div class="note">構想モックです。本実装では「デザイナーが編集 → MTGで全員が同時閲覧（ほぼリアルタイム反映）」を想定。無限キャンバスの同時編集はやらない割り切りです。</div>
-    <div class="ver">CoreNote v0.1.0 (mock)</div>
+    <div class="note">付箋・図形・テキストを自由に置いて、線でつないでマインドマップに。本実装では「ひとりが編集 → MTGで全員同時閲覧」を想定。</div>
+    <div class="ver">CoreNote v0.2.0 (mock)</div>
   </div>
 </div>
 
 <div id="app">
   <div id="topbar">
-    <div class="logo">📝 Core<b>Note</b><span class="ver">v0.1.0</span></div>
+    <div class="logo">📝 Core<b>Note</b><span class="ver">v0.2.0</span></div>
     <span class="dev-badge">🚧 開発中サンプル</span>
     <div class="spacer"></div>
-    <button class="tb-btn primary" onclick="alert('ノートの新規作成は本実装で。\nメモ／階層図を選び、共有範囲（個人・部署・プロジェクト）を設定して作る形になります。')">＋ ノート作成</button>
+    <button class="tb-btn primary" onclick="alert('ノートの新規作成は本実装で。\nキャンバス／メモを選び、共有範囲（個人・部署・プロジェクト）を設定して作る形になります。')">＋ ノート作成</button>
   </div>
 
   <div id="side"><div id="side-body"></div></div>
@@ -114,116 +138,355 @@ function cnLogin(){ try{localStorage.setItem('cn_authed','1')}catch(e){} documen
 
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+/* ===== 色（付箋カラー） ===== */
+const COLORS=['#fde047','#f9a8d4','#93c5fd','#86efac','#fdba74'];
+
 /* ===== サンプルデータ ===== */
-let nid=0;
-function tn(label, kids){ nid++; return { id:'n'+nid, label:label, open:true, kids:kids||[] }; }
+let _eid=0;
+function el(type,x,y,w,h,text,color){ _eid++; return {id:'e'+_eid, type:type, x:x,y:y,w:w,h:h, text:text, color:color||'#fde047'}; }
+
+function colDefault(){
+  const E=[];
+  const root=el('rect',70,300,190,72,'小林モータース\nコラム','#f9a8d4'); E.push(root);
+  const b1=el('sticky',360,90,160,58,'🚗 車検コラム','#fde047');
+  const b2=el('sticky',360,270,160,58,'🔧 修理・整備','#fde047');
+  const b3=el('sticky',360,440,160,58,'🚙 中古車','#fde047');
+  const b4=el('sticky',360,590,160,58,'🎬 YouTube連動','#fde047');
+  E.push(b1,b2,b3,b4);
+  const l1=el('sticky',640,30,170,52,'車検費用の内訳','#93c5fd');
+  const l2=el('sticky',640,100,170,52,'車検の期間と流れ','#93c5fd');
+  const l3=el('sticky',640,170,170,52,'代車の借り方','#93c5fd');
+  const l4=el('sticky',640,250,170,52,'エンジン異音の原因','#86efac');
+  const l5=el('sticky',640,320,170,52,'オイル交換の頻度','#86efac');
+  const l6=el('sticky',640,430,170,52,'失敗しない中古車選び','#fdba74');
+  const l7=el('sticky',640,500,170,52,'下取りと買取の違い','#fdba74');
+  const l8=el('sticky',640,590,170,52,'動画→記事の流用ルール','#f9a8d4');
+  const memo=el('text',70,120,220,40,'※ コラム構成のたたき台\n（ダブルクリックで編集）');
+  E.push(l1,l2,l3,l4,l5,l6,l7,l8,memo);
+  const G=[[root,b1],[root,b2],[root,b3],[root,b4],[b1,l1],[b1,l2],[b1,l3],[b2,l4],[b2,l5],[b3,l6],[b3,l7],[b4,l8]]
+    .map(function(p,i){ return {id:'g'+(i+1), from:p[0].id, to:p[1].id}; });
+  return {els:E, edges:G};
+}
+function brainDefault(){
+  const E=[];
+  E.push(el('text',70,60,260,40,'HPリニューアル ブレスト'));
+  E.push(el('ellipse',120,160,170,80,'お客さんに\n何を見せたい？','#f9a8d4'));
+  E.push(el('sticky',400,120,150,56,'作業風景の写真','#fde047'));
+  E.push(el('sticky',400,210,150,56,'スタッフの顔','#fde047'));
+  E.push(el('sticky',400,300,150,56,'料金の透明性','#93c5fd'));
+  E.push(el('sticky',620,160,150,56,'YouTube埋め込み','#86efac'));
+  return {els:E, edges:[{id:'g1',from:E[1].id,to:E[2].id},{id:'g2',from:E[1].id,to:E[3].id},{id:'g3',from:E[1].id,to:E[4].id}]};
+}
 
 const NOTES=[
-  { id:'d1', type:'tree', scope:'プロジェクト', name:'Webコラム 階層構成', editor:'デザイナー', viewers:3,
-    tree: tn('小林モータース コラム', [
-      tn('🚗 車検コラム', [ tn('車検費用の内訳'), tn('車検の期間と流れ'), tn('必要書類まとめ'), tn('代車の借り方') ]),
-      tn('🔧 修理・整備コラム', [ tn('エンジン異音の原因'), tn('オイル交換の頻度'), tn('タイヤ交換の目安') ]),
-      tn('🚙 中古車コラム', [ tn('失敗しない中古車選び'), tn('下取りと買取の違い') ]),
-      tn('🎬 YouTube連動', [ tn('動画→記事の流用ルール') ])
-    ])},
+  { id:'d1', type:'canvas', scope:'プロジェクト', name:'Webコラム 構成マップ', editor:'デザイナー', viewers:3, data:colDefault() },
+  { id:'d5', type:'canvas', scope:'プロジェクト', name:'HPリニューアル ブレスト', editor:'ゆうた', viewers:2, data:brainDefault() },
   { id:'d2', type:'memo', scope:'部署', name:'受付 引き継ぎメモ', editor:'受付', viewers:5,
-    body:'■ 6/4（木）\n・カワシマ様 R56 → 部品入荷待ち、入荷したらTEL\n・代車12 リースアップの件、営業さん来店は金曜15時\n\n■ 共有\n・夏季の代車予約が混んでます。新規はPitFlowの「代車の最短空き」を確認してから返答！\n・コーヒーメーカーの豆、発注済み' },
-  { id:'d3', type:'memo', scope:'プロジェクト', name:'HPリニューアル 議事録 6/2', editor:'ゆうた', viewers:3,
-    body:'■ 決定事項\n・トップのメインビジュアルは工場の作業風景に\n・コラムはCoreNoteの階層図の構成で進める\n・公開目標：8月頭\n\n■ 宿題\n・デザイナー：ワイヤー 6/10まで\n・ゆうた：サーバー移転見積もり 6/5まで' },
+    body:'■ 6/4（木）\n・カワシマ様 R56 → 部品入荷待ち、入荷したらTEL\n・代車12 リースアップの件、営業さん来店は金曜15時\n\n■ 共有\n・夏季の代車予約が混んでます。新規はPitFlowの「代車の最短空き」を確認してから返答！' },
   { id:'d4', type:'memo', scope:'個人', name:'ゆうた アイデア帳', editor:'ゆうた', viewers:1,
-    body:'・混雑アルゴリズム：予約上限の数字を現場とすり合わせる\n・YouTubeネタ：代車20台の管理の裏側（PitFlow画面出す？）\n・CoreBoard定着したらTrello解約 → 浮いた分でAPI費用に回す' }
+    body:'・混雑アルゴリズム：予約上限の数字を現場とすり合わせ\n・YouTubeネタ：代車20台の管理の裏側\n・CoreBoard定着したらTrello解約' }
 ];
-let cur='d1', sel=null;
+let cur='d1', selId=null, tool='select', pending=null, editing=false;
+let panX=40, panY=20, zoom=1;
+let dragCtx=null;
 
+/* ===== localStorage（モック永続化） ===== */
+function cvKey(){ return 'cn_cv2_'+cur; }
+function cvSave(){
+  const n=NOTES.find(function(x){return x.id===cur;});
+  if(!n||n.type!=='canvas') return;
+  try{ localStorage.setItem(cvKey(), JSON.stringify(n.data)); }catch(e){}
+}
+function cvLoad(n){
+  try{
+    const raw=localStorage.getItem('cn_cv2_'+n.id);
+    if(raw){ const d=JSON.parse(raw); if(d&&d.els) n.data=d; }
+  }catch(e){}
+}
+
+/* ===== サイドバー ===== */
 function renderSide(){
   const groups={};
   NOTES.forEach(function(n){ (groups[n.scope]=groups[n.scope]||[]).push(n); });
   let h='';
   ['プロジェクト','部署','個人'].forEach(function(g){
     if(!groups[g]) return;
-    h+='<div class="sg">'+(g==='プロジェクト'?'📁':'')+(g==='部署'?'🏢':'')+(g==='個人'?'👤':'')+' '+g+'</div>';
+    h+='<div class="sg">'+(g==='プロジェクト'?'📁':(g==='部署'?'🏢':'👤'))+' '+g+'</div>';
     groups[g].forEach(function(n){
-      h+='<div class="si'+(n.id===cur?' on':'')+'" onclick="cnOpen(\''+n.id+'\')">'+(n.type==='tree'?'🌳':'📄')+' '+esc(n.name)+'</div>';
+      h+='<div class="si'+(n.id===cur?' on':'')+'" onclick="cnOpen(\''+n.id+'\')">'+(n.type==='canvas'?'🎨':'📄')+' '+esc(n.name)+'</div>';
     });
   });
   document.getElementById('side-body').innerHTML=h;
 }
 
+function cnOpen(id){
+  cur=id; selId=null; pending=null; tool='select'; editing=false;
+  panX=40; panY=20; zoom=1;
+  renderSide(); renderNote();
+}
+
+/* ===== ノート描画 ===== */
 function renderNote(){
   const n=NOTES.find(function(x){return x.id===cur;});
   if(!n) return;
-  document.getElementById('n-title').textContent=(n.type==='tree'?'🌳 ':'📄 ')+n.name;
+  if(n.type==='canvas') cvLoad(n);
+  document.getElementById('n-title').textContent=(n.type==='canvas'?'🎨 ':'📄 ')+n.name;
   document.getElementById('n-scope').textContent=n.scope;
   document.getElementById('n-live').innerHTML='✏️ 編集中：<b>'+esc(n.editor)+'</b>　👀 閲覧中：'+n.viewers+'人（MTG同時閲覧イメージ）';
   const b=document.getElementById('n-body');
   if(n.type==='memo'){
-    b.innerHTML='<textarea class="memo" id="memo-ta">'+esc(n.body)+'</textarea>'
-      +'<div class="note">💡 本実装：編集はひとりずつ（編集中表示）・閲覧側にはほぼリアルタイムで反映（Firestore onSnapshot）。版の履歴は軽く持つ。</div>';
+    b.innerHTML='<textarea class="memo" id="memo-ta">'+esc(n.body)+'</textarea>';
     const ta=document.getElementById('memo-ta');
     ta.addEventListener('input', function(){ n.body=ta.value; });
-  } else {
-    let h='<div class="tbar">'
-      +'<button class="tbtn" onclick="cnAddChild()">＋ 子を追加</button>'
-      +'<button class="tbtn" onclick="cnRename()">✏️ 名前変更</button>'
-      +'<button class="tbtn" onclick="cnDelete()">🗑 削除</button>'
-      +'<span class="note" style="margin:0;align-self:center">ノードをクリックして選択 → 追加・変更・削除（サンプル）</span>'
-      +'</div>';
-    h+='<div class="tree">'+treeHtml(n.tree)+'</div>';
-    h+='<div class="note">💡 これが「Webコラムの階層表現」のCoreNote版。本実装：デザイナーが編集→MTGで全員同時閲覧、ノードの並び替え・折りたたみ・メモ添付。</div>';
-    b.innerHTML=h;
+    return;
   }
+  b.innerHTML=
+    '<div class="cv-actions" id="cv-actions"></div>'
+    +'<div class="cv-wrap" id="cv-wrap">'
+    +  '<div class="cv-tools">'
+    +    toolBtn('select','🖱','選択・移動（空白ドラッグで画面移動）')
+    +    toolBtn('sticky','🟨','付箋を置く')
+    +    toolBtn('rect','⬜','四角を置く')
+    +    toolBtn('ellipse','⭕','丸を置く')
+    +    toolBtn('text','🔤','テキストを置く')
+    +    toolBtn('connect','➜','線でつなぐ（要素→要素の順にクリック）')
+    +  '</div>'
+    +  '<div class="cv-zoom"><button onclick="cvZoom(-0.1)">−</button><span id="cv-zl">100%</span><button onclick="cvZoom(0.1)">＋</button></div>'
+    +  '<div class="cv-canvas" id="cv"></div>'
+    +'</div>';
+  bindCanvas();
+  renderCanvas();
+}
+function toolBtn(t,icon,tip){
+  return '<button class="tool'+(tool===t?' on':'')+'" title="'+tip+'" onclick="setTool(\''+t+'\')">'+icon+'</button>';
+}
+function setTool(t){
+  tool=t; pending=null;
+  document.querySelectorAll('.tool').forEach(function(b){ b.classList.remove('on'); });
+  const map={select:0,sticky:1,rect:2,ellipse:3,text:4,connect:5};
+  const btns=document.querySelectorAll('.tool');
+  if(btns[map[t]]) btns[map[t]].classList.add('on');
+  renderCanvas();
 }
 
-function treeHtml(node){
-  let h='<div class="tnode">';
-  h+='<div class="trow'+(sel===node.id?' sel':'')+'" onclick="cnSel(\''+node.id+'\')">';
-  h+='<span class="tg" onclick="event.stopPropagation();cnToggle(\''+node.id+'\')">'+(node.kids.length?(node.open?'▼':'▶'):'・')+'</span>';
-  h+='<span class="tl">'+esc(node.label)+'</span>';
-  h+='</div>';
-  if(node.kids.length && node.open){
-    h+='<div class="tkids">';
-    node.kids.forEach(function(k){ h+=treeHtml(k); });
-    h+='</div>';
+/* ===== キャンバス描画 ===== */
+function curData(){ const n=NOTES.find(function(x){return x.id===cur;}); return (n&&n.type==='canvas')?n.data:null; }
+function getEl(id){ const d=curData(); return d?d.els.find(function(e){return e.id===id;}):null; }
+
+function renderActions(){
+  const a=document.getElementById('cv-actions'); if(!a) return;
+  if(!selId){
+    a.innerHTML='<span class="cv-hint">💡 左のツールで置く ／ ダブルクリック＝文字編集 ／ 空白ドラッグ＝画面移動 ／ Ctrl＋ホイール＝ズーム ／ Delete＝削除</span>'
+      +'<span style="flex:1"></span><button class="abtn" onclick="cvReset()">🔄 サンプルに戻す</button>';
+    return;
   }
-  h+='</div>';
-  return h;
+  const e=getEl(selId);
+  let h='<button class="abtn" onclick="cvChild()">＋ 子ノード（つないで追加）</button>';
+  if(e && e.type!=='text'){
+    COLORS.forEach(function(c){
+      h+='<span class="sw'+(e.color===c?' on':'')+'" style="background:'+c+'" onclick="cvColor(\''+c+'\')"></span>';
+    });
+  }
+  h+='<button class="abtn" onclick="cvDelete()">🗑 削除</button>';
+  h+='<span class="cv-hint">▼ 角の■ドラッグでサイズ変更</span>';
+  a.innerHTML=h;
 }
 
-function findNode(node, id, parent){
-  if(node.id===id) return {node:node, parent:parent};
-  for(let i=0;i<node.kids.length;i++){
-    const r=findNode(node.kids[i], id, node);
-    if(r) return r;
-  }
-  return null;
+function renderCanvas(){
+  const d=curData(); const cv=document.getElementById('cv');
+  if(!d||!cv) return;
+  let svg='<svg id="cv-svg" width="3000" height="2000"><defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/></marker></defs>';
+  d.edges.forEach(function(g){
+    const a=getEl(g.from), b=getEl(g.to);
+    if(!a||!b) return;
+    const L=edgeLine(a,b);
+    svg+='<line x1="'+L.x1+'" y1="'+L.y1+'" x2="'+L.x2+'" y2="'+L.y2+'" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arr)"/>';
+  });
+  svg+='</svg>';
+  let els='';
+  d.els.forEach(function(e){
+    const cls='el el-'+e.type+(e.id===selId?' sel':'')+(pending===e.id?' pend':'');
+    const bg=(e.type==='text')?'':('background:'+e.color+';');
+    els+='<div class="'+cls+'" data-id="'+e.id+'" style="left:'+e.x+'px;top:'+e.y+'px;width:'+e.w+'px;height:'+e.h+'px;'+bg+'">'
+       +'<div class="el-t">'+esc(e.text).replace(/\n/g,'<br>')+'</div>'
+       +'<div class="rsz"></div></div>';
+  });
+  cv.innerHTML=svg+els;
+  updateTransform();
+  renderActions();
 }
-function curTree(){ const n=NOTES.find(function(x){return x.id===cur;}); return (n&&n.type==='tree')?n.tree:null; }
+function edgeLine(a,b){
+  const ax=a.x+a.w/2, ay=a.y+a.h/2, bx=b.x+b.w/2, by=b.y+b.h/2;
+  const dx=bx-ax, dy=by-ay, len=Math.hypot(dx,dy)||1;
+  const tS=Math.min(0.45,(Math.min(a.w,a.h)/2)/len);
+  const tE=Math.max(0.55,(len-(Math.min(b.w,b.h)/2+8))/len);
+  return {x1:ax+dx*tS, y1:ay+dy*tS, x2:ax+dx*tE, y2:ay+dy*tE};
+}
+function updateTransform(){
+  const cv=document.getElementById('cv'); if(!cv) return;
+  cv.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
+  const zl=document.getElementById('cv-zl'); if(zl) zl.textContent=Math.round(zoom*100)+'%';
+}
 
-function cnOpen(id){ cur=id; sel=null; renderSide(); renderNote(); }
-function cnSel(id){ sel=(sel===id?null:id); renderNote(); }
-function cnToggle(id){ const t=curTree(); if(!t)return; const r=findNode(t,id,null); if(r){ r.node.open=!r.node.open; renderNote(); } }
-function cnAddChild(){
-  const t=curTree(); if(!t)return;
-  const target=sel?findNode(t,sel,null):{node:t};
-  if(!target){ alert('追加先のノードをクリックで選んでください'); return; }
-  const label=prompt('追加する項目名：'); if(!label) return;
-  target.node.kids.push(tn(label));
-  target.node.open=true;
-  renderNote();
+/* ===== 操作（Miro風） ===== */
+function toCanvas(ev){
+  const wrap=document.getElementById('cv-wrap');
+  const r=wrap.getBoundingClientRect();
+  return { x:(ev.clientX-r.left-panX)/zoom, y:(ev.clientY-r.top-panY)/zoom };
 }
-function cnRename(){
-  const t=curTree(); if(!t||!sel){ alert('ノードをクリックで選んでください'); return; }
-  const r=findNode(t,sel,null); if(!r) return;
-  const label=prompt('新しい名前：', r.node.label); if(!label) return;
-  r.node.label=label; renderNote();
+
+function bindCanvas(){
+  const wrap=document.getElementById('cv-wrap'); if(!wrap) return;
+  wrap.onmousedown=function(ev){
+    if(ev.target.closest('.cv-tools')||ev.target.closest('.cv-zoom')) return;
+    const elDiv=ev.target.closest('.el');
+    const pt=toCanvas(ev);
+    if(tool==='connect'){
+      if(elDiv){
+        const id=elDiv.getAttribute('data-id');
+        if(!pending){ pending=id; }
+        else if(pending!==id){
+          const d=curData();
+          d.edges.push({id:'g'+Date.now().toString(36), from:pending, to:id});
+          pending=null; tool='select'; cvSave();
+        }
+      } else { pending=null; }
+      renderCanvas(); return;
+    }
+    if(tool!=='select'){
+      cvPlace(tool, pt);
+      return;
+    }
+    if(elDiv){
+      if(ev.target.isContentEditable) return;
+      const id=elDiv.getAttribute('data-id');
+      if(ev.target.classList.contains('rsz')){
+        const e=getEl(id);
+        selId=id;
+        dragCtx={mode:'resize', id:id, sw:e.w, sh:e.h, sx:pt.x, sy:pt.y};
+        renderCanvas(); return;
+      }
+      selId=id;
+      const e=getEl(id);
+      dragCtx={mode:'el', id:id, dx:pt.x-e.x, dy:pt.y-e.y, moved:false};
+      renderCanvas();
+    } else {
+      selId=null;
+      dragCtx={mode:'pan', sx:ev.clientX, sy:ev.clientY, px:panX, py:panY};
+      renderCanvas();
+    }
+  };
+  wrap.ondblclick=function(ev){
+    const elDiv=ev.target.closest('.el');
+    if(elDiv) cvEdit(elDiv.getAttribute('data-id'));
+  };
+  wrap.onwheel=function(ev){
+    ev.preventDefault();
+    if(ev.ctrlKey){
+      const pt=toCanvas(ev);
+      zoom=Math.min(2, Math.max(0.3, zoom*(ev.deltaY<0?1.1:0.9)));
+      const r=document.getElementById('cv-wrap').getBoundingClientRect();
+      panX=ev.clientX-r.left-pt.x*zoom;
+      panY=ev.clientY-r.top-pt.y*zoom;
+    } else {
+      panX-=ev.deltaX; panY-=ev.deltaY;
+    }
+    updateTransform();
+  };
 }
-function cnDelete(){
-  const t=curTree(); if(!t||!sel){ alert('ノードをクリックで選んでください'); return; }
-  const r=findNode(t,sel,null);
-  if(!r||!r.parent){ alert('一番上のノードは消せません'); return; }
-  if(!confirm('「'+r.node.label+'」を子ごと削除しますか？')) return;
-  r.parent.kids.splice(r.parent.kids.indexOf(r.node),1);
-  sel=null; renderNote();
+
+document.addEventListener('mousemove', function(ev){
+  if(!dragCtx) return;
+  if(dragCtx.mode==='pan'){
+    panX=dragCtx.px+(ev.clientX-dragCtx.sx);
+    panY=dragCtx.py+(ev.clientY-dragCtx.sy);
+    updateTransform(); return;
+  }
+  const pt=toCanvas(ev);
+  const e=getEl(dragCtx.id); if(!e) return;
+  if(dragCtx.mode==='el'){
+    e.x=Math.round(pt.x-dragCtx.dx); e.y=Math.round(pt.y-dragCtx.dy);
+    dragCtx.moved=true;
+  } else if(dragCtx.mode==='resize'){
+    e.w=Math.max(50, Math.round(dragCtx.sw+(pt.x-dragCtx.sx)));
+    e.h=Math.max(36, Math.round(dragCtx.sh+(pt.y-dragCtx.sy)));
+  }
+  renderCanvas();
+});
+document.addEventListener('mouseup', function(){
+  if(dragCtx && (dragCtx.mode==='el'||dragCtx.mode==='resize')) cvSave();
+  dragCtx=null;
+});
+document.addEventListener('keydown', function(ev){
+  if((ev.key==='Delete'||ev.key==='Backspace') && selId && !editing){
+    ev.preventDefault(); cvDelete();
+  }
+});
+
+/* ===== 要素操作 ===== */
+function cvPlace(t, pt){
+  const d=curData(); if(!d) return;
+  const def={ sticky:{w:150,h:56,text:'付箋',color:'#fde047'}, rect:{w:160,h:64,text:'タイトル',color:'#93c5fd'},
+              ellipse:{w:150,h:90,text:'テーマ',color:'#f9a8d4'}, text:{w:200,h:36,text:'テキスト',color:''} };
+  const s=def[t]||def.sticky;
+  const e=el(t, Math.round(pt.x-s.w/2), Math.round(pt.y-s.h/2), s.w, s.h, s.text, s.color);
+  e.id='e'+Date.now().toString(36);
+  d.els.push(e);
+  selId=e.id; tool='select';
+  cvSave(); renderCanvas();
+  setTimeout(function(){ cvEdit(e.id); },0);
+}
+function cvEdit(id){
+  selId=id; renderCanvas();
+  const div=document.querySelector('.el[data-id="'+id+'"] .el-t'); if(!div) return;
+  const e=getEl(id);
+  editing=true;
+  div.parentElement.classList.add('editing');
+  div.textContent=e.text;
+  div.setAttribute('contenteditable','true');
+  div.focus();
+  document.execCommand && document.execCommand('selectAll', false, null);
+  div.onblur=function(){
+    e.text=div.innerText.trim()||e.text;
+    div.removeAttribute('contenteditable');
+    editing=false;
+    cvSave(); renderCanvas();
+  };
+}
+function cvChild(){
+  const d=curData(); const p=getEl(selId);
+  if(!d||!p){ alert('要素を選択してください'); return; }
+  const c=el('sticky', p.x+p.w+90, p.y, 150, 56, '新しい項目', p.color==='#f9a8d4'?'#fde047':p.color);
+  c.id='e'+Date.now().toString(36);
+  d.els.push(c);
+  d.edges.push({id:'g'+Date.now().toString(36), from:p.id, to:c.id});
+  selId=c.id;
+  cvSave(); renderCanvas();
+  setTimeout(function(){ cvEdit(c.id); },0);
+}
+function cvColor(c){
+  const e=getEl(selId); if(!e) return;
+  e.color=c; cvSave(); renderCanvas();
+}
+function cvDelete(){
+  const d=curData(); if(!d||!selId) return;
+  const i=d.els.findIndex(function(e){return e.id===selId;});
+  if(i<0) return;
+  d.els.splice(i,1);
+  d.edges=d.edges.filter(function(g){return g.from!==selId && g.to!==selId;});
+  selId=null;
+  cvSave(); renderCanvas();
+}
+function cvZoom(dz){
+  zoom=Math.min(2, Math.max(0.3, zoom+dz));
+  updateTransform();
+}
+function cvReset(){
+  if(!confirm('このキャンバスを初期サンプルに戻しますか？')) return;
+  try{ localStorage.removeItem(cvKey()); }catch(e){}
+  const n=NOTES.find(function(x){return x.id===cur;});
+  if(n){ n.data=(n.id==='d1')?colDefault():brainDefault(); }
+  selId=null; renderNote();
 }
 
 renderSide(); renderNote();
